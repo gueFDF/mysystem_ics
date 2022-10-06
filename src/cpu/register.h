@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-typedef struct CPU_STRUCT //模拟CPU
+
+typedef struct CPU_STRUCT //模拟CPU(统用寄存器)
 {
-    union   //返回值
+    union //返回值
     {
         struct
         {
@@ -14,7 +15,7 @@ typedef struct CPU_STRUCT //模拟CPU
         uint32_t eax;
         uint64_t rax;
     };
-    union   //被调用者保存
+    union //被调用者保存
     {
         struct
         {
@@ -25,7 +26,7 @@ typedef struct CPU_STRUCT //模拟CPU
         uint32_t ebx;
         uint64_t rbx;
     };
-    union  //第四个参数
+    union //第四个参数
     {
         struct
         {
@@ -36,7 +37,7 @@ typedef struct CPU_STRUCT //模拟CPU
         uint32_t ecx;
         uint64_t rcx;
     };
-    union  //第三个参数
+    union //第三个参数
     {
         struct
         {
@@ -47,7 +48,7 @@ typedef struct CPU_STRUCT //模拟CPU
         uint32_t edx;
         uint64_t rdx;
     };
-    union   //第二个参数
+    union //第二个参数
     {
         struct
         {
@@ -58,7 +59,7 @@ typedef struct CPU_STRUCT //模拟CPU
         uint32_t esi;
         uint64_t rsi;
     };
-    union   //第一个参数
+    union //第一个参数
     {
         struct
         {
@@ -69,7 +70,7 @@ typedef struct CPU_STRUCT //模拟CPU
         uint32_t edi;
         uint64_t rdi;
     };
-    union   //被调用者保存
+    union //被调用者保存
     {
         struct
         {
@@ -80,7 +81,7 @@ typedef struct CPU_STRUCT //模拟CPU
         uint32_t ebp;
         uint64_t rbp;
     };
-    union   //栈指针
+    union //栈指针
     {
         struct
         {
@@ -92,6 +93,8 @@ typedef struct CPU_STRUCT //模拟CPU
         uint64_t rsp;
     };
 
-        uint64_t rip; //pc寄存器
+    uint64_t rip; // pc寄存器
 
 } CPU;
+
+CPU cpu; //创建一个CPU
