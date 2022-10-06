@@ -5,7 +5,10 @@ EXE = program
 
 SRC = ./src
 
-CODE = ./src/memory/instruction.c ./src/disk/code.c  ./src/main.c
+CODE = ./src/memory/instruction.c ./src/disk/code.c  \
+ ./src/memory/dram.c ./src/disk/elf.h ./src/cpu/mmu.c \
+ ./src/main.c 
+
 
 .PHONY: program
 main:
