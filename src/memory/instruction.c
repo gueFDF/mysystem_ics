@@ -1,5 +1,6 @@
 #include "memory/instruction.h"
 #include"cpu/mmu.h"
+#include "cpu/register.h"
 static uint64_t decode_od(od_t od)
 {
     if (od.type == IMM)
@@ -52,4 +53,22 @@ static uint64_t decode_od(od_t od)
         return va2pa(vaddr);
 
     }
+}
+
+void instruction_cyale()
+{
+    inst_t *instr=(inst_t*)reg.rip;   //rip为pc
+    uint64_t src=decode_od(instr->src);
+    uint64_t dst=decode_od(instr->dst);
+    handler_table[instr->op](src,dst);
+}
+
+static init_handler_table()
+{
+    handler_table[add_reg_reg]=add_reg_reg_handler;
+}
+void add_reg_reg_handler(uint64_t src,uint64_t dst)
+{
+    *(uint64_t*)dst=*(uint64_t*)src+*(uint64_t*)dst;
+    reg.rip+=sizeof(inst_t);//让pc指向下一条指令
 }
