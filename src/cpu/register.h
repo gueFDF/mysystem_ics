@@ -1,3 +1,5 @@
+#ifndef REG_GUARD
+#define REG_GUARD
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -97,4 +99,7 @@ typedef struct CPU_STRUCT //模拟CPU(统用寄存器)
 
 } CPU;
 
-CPU cpu; //创建一个CPU
+CPU reg; 
+
+
+#endif

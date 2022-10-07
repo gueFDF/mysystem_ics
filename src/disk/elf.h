@@ -1,6 +1,11 @@
+#ifndef ELF_GUARD
+#define ELF_GUARD
 #include<stdlib.h>
 #include<stdint.h>
 #include"memory/instruction.h"
 
-#define INST_LEN 100
+#define INST_LEN 15
+//模拟内存中的代码段
 inst_t program[INST_LEN];
+
+#endif
