@@ -8,11 +8,11 @@ static uint64_t decode_od(od_t od)
     {
         return od.imm;
     }
-    else if (od.type == REG)  //寄存器
+    else if (od.type == REG) //寄存器
     {
         return (uint64_t)od.reg1;
     }
-    else  //下面就是访问内存
+    else //下面就是访问内存
     {
         uint64_t vaddr = 0;
         if (od.type == MM_IMM)
@@ -57,13 +57,14 @@ static uint64_t decode_od(od_t od)
 
 void instruction_cyale()
 {
-    inst_t *instr = (inst_t *)reg.rip; // rip为pc
-    uint64_t src = decode_od(instr->src);
+    inst_t *instr = (inst_t *)reg.rip; //  取指
+    uint64_t src = decode_od(instr->src); //译码
     uint64_t dst = decode_od(instr->dst);
-    handler_table[instr->op](src, dst);
+    printf("op:%d\n",instr->op);
+    handler_table[instr->op](src, dst); //执行
 }
 
-static void init_handler_table()
+void init_handler_table()
 {
     handler_table[add_reg_reg] = add_reg_reg_handler;
     handler_table[mov_reg_reg] = mov_reg_reg_handler;
@@ -78,4 +79,8 @@ void mov_reg_reg_handler(uint64_t src, uint64_t dst)
 {
     *(uint64_t *)dst = *(uint64_t *)src;
     reg.rip += sizeof(inst_t); //让pc指向下一条指令
+}
+
+void push_reg_handler(uint64_t src, uint64_t dst)
+{
 }

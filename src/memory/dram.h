@@ -7,4 +7,6 @@
 
 uint8_t mm[MM_LEN];//假内存  piscycal memory
 
+void print_stack();
+void print_register();
 #endif
