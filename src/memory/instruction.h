@@ -66,7 +66,7 @@ void instruction_cyale();
 void add_reg_reg_handler(uint64_t src, uint64_t dst);
 void mov_reg_reg_handler(uint64_t src, uint64_t dst);
 void push_reg_handler(uint64_t src, uint64_t dst);
-
+void call_handler(uint64_t src, uint64_t dst);
 handler_t handler_table[NUM_OP];
 void init_handler_table();//初始化handler_table
 

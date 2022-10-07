@@ -62,6 +62,8 @@ void instruction_cyale()
     uint64_t dst = decode_od(instr->dst);
     printf("op:%d\n",instr->op);
     handler_table[instr->op](src, dst); //执行
+
+    printf("     %s\n",instr->code);//打印汇编操作，方便查看
 }
 
 void init_handler_table()
@@ -83,4 +85,16 @@ void mov_reg_reg_handler(uint64_t src, uint64_t dst)
 
 void push_reg_handler(uint64_t src, uint64_t dst)
 {
+}
+
+void call_handler(uint64_t src, uint64_t dst)
+{
+    //src:imm address of called function
+    //向下压栈
+    reg.rsp-=8;
+    //将返回地址存在栈顶,也就是call指令的下一条指令
+    write64bits_dram(va2pa(reg.rsp),reg.rip+sizeof(inst_t));
+    //更新rip，使它执行跳转地址
+    reg.rip=src;
+
 }

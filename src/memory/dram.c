@@ -1,5 +1,6 @@
 #include "memory/dram.h"
 #include "cpu/register.h"
+#include "cpu/mmu.h"
 #define SRAN_CACHE_SETTING 0 // fliging
 uint64_t read64bit_dram(uint64_t paddr)
 {
