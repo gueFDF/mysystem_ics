@@ -6,9 +6,7 @@
 #define NUM_OP 30
 typedef enum OP
 {
-    MOV,
-    PUSH,
-    CALL,
+    mov,
     add_reg_reg,
     mov_reg_reg,
     push_reg,
@@ -65,14 +63,17 @@ void instruction_cyale();
 
 void add_reg_reg_handler(uint64_t src, uint64_t dst);
 void mov_reg_reg_handler(uint64_t src, uint64_t dst);
-void push_reg_handler(uint64_t src, uint64_t dst);
+void push_handler(uint64_t src, uint64_t dst);
 void call_handler(uint64_t src, uint64_t dst);
+void pop_handler(uint64_t src, uint64_t dst);
+void mov_reg_mem_handler(uint64_t src, uint64_t dst);
+void mov_mem_reg_handler(uint64_t src, uint64_t dst);
+void ret_handler(uint64_t src, uint64_t dst);
 handler_t handler_table[NUM_OP];
-void init_handler_table();//初始化handler_table
+void init_handler_table(); //初始化handler_table
 
 //读写内存
 uint64_t read64bit_dram(uint64_t paddr);
-void write64bits_dram(uint64_t paddr,uint64_t data);
-
+void write64bits_dram(uint64_t paddr, uint64_t data);
 
 #endif

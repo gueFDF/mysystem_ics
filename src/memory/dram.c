@@ -54,7 +54,7 @@ void print_stack()
         {
             printf(" <== rsp");
         }
-        if(i==6)
+        if(reg.rbp==rsp_start)
         {
             printf(" <== rbp");
         }

@@ -51,25 +51,35 @@ static uint64_t decode_od(od_t od)
         {
             vaddr = od.imm + *(od.reg1) + (*(od.reg2)) * od.scal;
         }
-        return va2pa(vaddr);
+        else if (od.type == EMPTY)
+        {
+            vaddr = 0;
+        }
+        return vaddr;
     }
 }
 
 void instruction_cyale()
 {
     inst_t *instr = (inst_t *)reg.rip; //  取指
+    printf("op:%d\n", instr->op);
     uint64_t src = decode_od(instr->src); //译码
     uint64_t dst = decode_od(instr->dst);
-    printf("op:%d\n",instr->op);
     handler_table[instr->op](src, dst); //执行
 
-    printf("     %s\n",instr->code);//打印汇编操作，方便查看
+    printf("     %s\n", instr->code); //打印汇编操作，方便查看
 }
 
 void init_handler_table()
 {
     handler_table[add_reg_reg] = add_reg_reg_handler;
     handler_table[mov_reg_reg] = mov_reg_reg_handler;
+    handler_table[call] = call_handler;
+    handler_table[push_reg] = push_handler;
+    handler_table[mov_reg_mem] = mov_reg_mem_handler;
+    handler_table[mov_mem_reg] = mov_mem_reg_handler;
+    handler_table[pop_reg] = pop_handler;
+    handler_table[ret] = ret_handler;
 }
 void add_reg_reg_handler(uint64_t src, uint64_t dst)
 {
@@ -82,19 +92,51 @@ void mov_reg_reg_handler(uint64_t src, uint64_t dst)
     *(uint64_t *)dst = *(uint64_t *)src;
     reg.rip += sizeof(inst_t); //让pc指向下一条指令
 }
-
-void push_reg_handler(uint64_t src, uint64_t dst)
+void mov_reg_mem_handler(uint64_t src, uint64_t dst)
 {
+    write64bits_dram(va2pa(dst), *(uint64_t *)src);
+    reg.rip += sizeof(inst_t); //让pc指向下一条指令
 }
-
+void mov_mem_reg_handler(uint64_t src, uint64_t dst)
+{
+    *(uint64_t *)dst = read64bit_dram(va2pa(src));
+    reg.rip += sizeof(inst_t); //让pc指向下一条指令
+}
 void call_handler(uint64_t src, uint64_t dst)
 {
-    //src:imm address of called function
+    // src:imm address of called function
     //向下压栈
-    reg.rsp-=8;
+    reg.rsp -= 8;
     //将返回地址存在栈顶,也就是call指令的下一条指令
-    write64bits_dram(va2pa(reg.rsp),reg.rip+sizeof(inst_t));
+    write64bits_dram(va2pa(reg.rsp), reg.rip + sizeof(inst_t));
     //更新rip，使它执行跳转地址
-    reg.rip=src;
+    reg.rip = src;
+}
+void push_handler(uint64_t src, uint64_t dst)
+{
+    // src:reg
+    // dst:empty
+    //会先压栈
+    reg.rsp -= 8;
+    //将src存放在栈顶
+    write64bits_dram(va2pa(reg.rsp), *(uint64_t *)src);
+    reg.rip += sizeof(inst_t); //让pc指向下一条指令
+}
 
+void pop_handler(uint64_t src, uint64_t dst)
+{
+    // src:reg
+    // dst:empty
+    //将返回值存放在src中
+    *(uint64_t *)src = read64bit_dram(va2pa(reg.rsp));
+    //弹栈
+    reg.rsp += 8;
+    reg.rip += sizeof(inst_t); //让pc指向下一条指令
+}
+void ret_handler(uint64_t src, uint64_t dst)
+{
+    // src:reg
+    // dst:empty
+    reg.rip = read64bit_dram(va2pa(reg.rsp));
+    reg.rsp += 8;
 }
