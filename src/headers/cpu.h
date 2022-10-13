@@ -183,24 +183,6 @@ typedef struct REGISTER_STRUCT
     };
 } reg_t;
 
-/*======================================*/
-/*      sram cache                      */
-/*======================================*/
-
-/*
-The components of a SRAM cache address:
-Note: SRAM cache address is the translated physical address
-
-|   TAG_LEN     |   INDEX_LEN   |   OFFSET_LEN  |
-+---------------+---------------+---------------+
-|   tag         |   index       |   offset      |
-+---------------+---------------+---------------+
-|   ADDR_LEN                                    |
-*/
-
-/*======================================*/
-/*      cpu core                        */
-/*======================================*/
 
 typedef struct CORE_STRUCT
 {

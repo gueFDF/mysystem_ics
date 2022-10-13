@@ -1,9 +1,9 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
-#include<headers/cpu.h>
-#include<headers/memory.h>
-#include<headers/common.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <headers/cpu.h>
+#include <headers/memory.h>
+#include <headers/common.h>
 
 /*======================================*/
 /*      instruction set architecture    */
@@ -12,42 +12,42 @@
 // data structures
 typedef enum INST_OPERATOR
 {
-    INST_MOV,           // 0
-    INST_PUSH,          // 1
-    INST_POP,           // 2
-    INST_LEAVE,         // 3
-    INST_CALL,          // 4
-    INST_RET,           // 5
-    INST_ADD,           // 6
-    INST_SUB,           // 7
-    INST_CMP,           // 8
-    INST_JNE,           // 9
-    INST_JMP,           // 10
+    INST_MOV,   // 0
+    INST_PUSH,  // 1
+    INST_POP,   // 2
+    INST_LEAVE, // 3
+    INST_CALL,  // 4
+    INST_RET,   // 5
+    INST_ADD,   // 6
+    INST_SUB,   // 7
+    INST_CMP,   // 8
+    INST_JNE,   // 9
+    INST_JMP,   // 10
 } op_t;
 
 typedef enum OPERAND_TYPE
 {
-    EMPTY,                  // 0
-    IMM,                    // 1
-    REG,                    // 2
-    MEM_IMM,                // 3
-    MEM_REG1,               // 4
-    MEM_IMM_REG1,           // 5
-    MEM_REG1_REG2,          // 6
-    MEM_IMM_REG1_REG2,      // 7
-    MEM_REG2_SCAL,          // 8
-    MEM_IMM_REG2_SCAL,      // 9
-    MEM_REG1_REG2_SCAL,     // 10
-    MEM_IMM_REG1_REG2_SCAL  // 11
+    EMPTY,                 // 0
+    IMM,                   // 1
+    REG,                   // 2
+    MEM_IMM,               // 3
+    MEM_REG1,              // 4
+    MEM_IMM_REG1,          // 5
+    MEM_REG1_REG2,         // 6
+    MEM_IMM_REG1_REG2,     // 7
+    MEM_REG2_SCAL,         // 8
+    MEM_IMM_REG2_SCAL,     // 9
+    MEM_REG1_REG2_SCAL,    // 10
+    MEM_IMM_REG1_REG2_SCAL // 11
 } od_type_t;
 
 typedef struct OPERAND_STRUCT
 {
-    od_type_t   type;   // IMM, REG, MEM
-    uint64_t    imm;    // immediate number
-    uint64_t    scal;   // scale number to register 2
-    uint64_t    reg1;   // main register
-    uint64_t    reg2;   // register 2
+    od_type_t type; // IMM, REG, MEM
+    uint64_t imm;   // immediate number
+    uint64_t scal;  // scale number to register 2
+    uint64_t reg1;  // main register
+    uint64_t reg2;  // register 2
 } od_t;
 
 // local variables are allocated in stack in run-time
@@ -56,11 +56,10 @@ typedef struct OPERAND_STRUCT
 // Chapter 7 Linking: 7.5 Symbols and Symbol Tables
 typedef struct INST_STRUCT
 {
-    op_t    op;         // enum of operators. e.g. mov, call, etc.
-    od_t    src;        // operand src of instruction
-    od_t    dst;        // operand dst of instruction
+    op_t op;  // enum of operators. e.g. mov, call, etc.
+    od_t src; // operand src of instruction
+    od_t dst; // operand dst of instruction
 } inst_t;
-
 
 // functions to map the string assembly code to inst_t instance
 static void parse_instruction(const char *str, inst_t *inst, core_t *cr);
@@ -107,7 +106,7 @@ static uint64_t decode_operand(od_t *od)
         }
         else if (od->type == MEM_IMM_REG1_REG2)
         {
-            vaddr = od->imm +  (*((uint64_t *)od->reg1)) + (*((uint64_t *)od->reg2));
+            vaddr = od->imm + (*((uint64_t *)od->reg1)) + (*((uint64_t *)od->reg2));
         }
         else if (od->type == MEM_REG2_SCAL)
         {
@@ -127,19 +126,41 @@ static uint64_t decode_operand(od_t *od)
         }
         return vaddr;
     }
-    
+
     // empty
     return 0;
 }
 
 static void parse_instruction(const char *str, inst_t *inst, core_t *cr)
 {
-    
 }
 
-static void parse_operand(const char *str, od_t *od, core_t *cr)
+static void parse_operand(const char *str, od_t *od, core_t *cr)  //此函数用来解析汇编指令
 {
+    //str即为我们要解析的一条汇编指令
+    //解析前先将内容初始化
+    od->type=0;
+    od->reg1=0;
+    od->reg2=0;
+    od->scal=0;
+    od->imm=0;
+    if(strlen(str)==0)  //如过传进来的是一个空串
+    {
+        return;  //直接返回
+    }
+    if(str[0]=='$')  //是一个立即数
+    {
+        od->type=IMM;
+        od->imm=string2uint_range(str,1,-1);   //此函数是将指定范围的字符串解析为立即数（手动实现）
+    }
+    else if(str[0]=='%') //是一个寄存器
+    {
 
+    }
+    else
+    {
+
+    }
 }
 
 /*======================================*/
@@ -153,33 +174,33 @@ static void parse_operand(const char *str, od_t *od, core_t *cr)
 // and then re-fetch the instruction and do decoding
 // and finally re-run the instruction
 
-static void mov_handler             (od_t *src_od, od_t *dst_od, core_t *cr);
-static void push_handler            (od_t *src_od, od_t *dst_od, core_t *cr);
-static void pop_handler             (od_t *src_od, od_t *dst_od, core_t *cr);
-static void leave_handler           (od_t *src_od, od_t *dst_od, core_t *cr);
-static void call_handler            (od_t *src_od, od_t *dst_od, core_t *cr);
-static void ret_handler             (od_t *src_od, od_t *dst_od, core_t *cr);
-static void add_handler             (od_t *src_od, od_t *dst_od, core_t *cr);
-static void sub_handler             (od_t *src_od, od_t *dst_od, core_t *cr);
-static void cmp_handler             (od_t *src_od, od_t *dst_od, core_t *cr);
-static void jne_handler             (od_t *src_od, od_t *dst_od, core_t *cr);
-static void jmp_handler             (od_t *src_od, od_t *dst_od, core_t *cr);
+static void mov_handler(od_t *src_od, od_t *dst_od, core_t *cr);
+static void push_handler(od_t *src_od, od_t *dst_od, core_t *cr);
+static void pop_handler(od_t *src_od, od_t *dst_od, core_t *cr);
+static void leave_handler(od_t *src_od, od_t *dst_od, core_t *cr);
+static void call_handler(od_t *src_od, od_t *dst_od, core_t *cr);
+static void ret_handler(od_t *src_od, od_t *dst_od, core_t *cr);
+static void add_handler(od_t *src_od, od_t *dst_od, core_t *cr);
+static void sub_handler(od_t *src_od, od_t *dst_od, core_t *cr);
+static void cmp_handler(od_t *src_od, od_t *dst_od, core_t *cr);
+static void jne_handler(od_t *src_od, od_t *dst_od, core_t *cr);
+static void jmp_handler(od_t *src_od, od_t *dst_od, core_t *cr);
 
 // handler table storing the handlers to different instruction types
 typedef void (*handler_t)(od_t *, od_t *, core_t *);
 // look-up table of pointers to function
 static handler_t handler_table[NUM_INSTRTYPE] = {
-    &mov_handler,               // 0
-    &push_handler,              // 1
-    &pop_handler,               // 2
-    &leave_handler,             // 3
-    &call_handler,              // 4
-    &ret_handler,               // 5
-    &add_handler,               // 6
-    &sub_handler,               // 7
-    &cmp_handler,               // 8
-    &jne_handler,               // 9
-    &jmp_handler,               // 10
+    &mov_handler,   // 0
+    &push_handler,  // 1
+    &pop_handler,   // 2
+    &leave_handler, // 3
+    &call_handler,  // 4
+    &ret_handler,   // 5
+    &add_handler,   // 6
+    &sub_handler,   // 7
+    &cmp_handler,   // 8
+    &jne_handler,   // 9
+    &jmp_handler,   // 10
 };
 
 // reset the condition flags
@@ -223,10 +244,9 @@ static void mov_handler(od_t *src_od, od_t *dst_od, core_t *cr)
         // src: register
         // dst: virtual address
         write64bits_dram(
-            va2pa(dst, cr), 
+            va2pa(dst, cr),
             *(uint64_t *)src,
-            cr
-            );
+            cr);
         next_rip(cr);
         reset_cflags(cr);
         return;
@@ -236,7 +256,7 @@ static void mov_handler(od_t *src_od, od_t *dst_od, core_t *cr)
         // src: virtual address
         // dst: register
         *(uint64_t *)dst = read64bits_dram(
-            va2pa(src, cr), 
+            va2pa(src, cr),
             cr);
         next_rip(cr);
         reset_cflags(cr);
@@ -264,10 +284,9 @@ static void push_handler(od_t *src_od, od_t *dst_od, core_t *cr)
         // dst: empty
         (cr->reg).rsp = (cr->reg).rsp - 8;
         write64bits_dram(
-            va2pa((cr->reg).rsp, cr), 
-            *(uint64_t *)src, 
-            cr
-            );
+            va2pa((cr->reg).rsp, cr),
+            *(uint64_t *)src,
+            cr);
         next_rip(cr);
         reset_cflags(cr);
         return;
@@ -278,15 +297,14 @@ static void pop_handler(od_t *src_od, od_t *dst_od, core_t *cr)
 {
     uint64_t src = decode_operand(src_od);
     // uint64_t dst = decode_operand(dst_od);
-    
+
     if (src_od->type == REG)
     {
         // src: register
         // dst: empty
         uint64_t old_val = read64bits_dram(
             va2pa((cr->reg).rsp, cr),
-            cr
-            );
+            cr);
         (cr->reg).rsp = (cr->reg).rsp + 8;
         *(uint64_t *)src = old_val;
         next_rip(cr);
@@ -311,8 +329,7 @@ static void call_handler(od_t *src_od, od_t *dst_od, core_t *cr)
     write64bits_dram(
         va2pa((cr->reg).rsp, cr),
         cr->rip + sizeof(char) * MAX_INSTRUCTION_CHAR,
-        cr
-        );
+        cr);
     // jump to target function address
     cr->rip = src;
     reset_cflags(cr);
@@ -328,8 +345,7 @@ static void ret_handler(od_t *src_od, od_t *dst_od, core_t *cr)
     // pop rsp
     uint64_t ret_addr = read64bits_dram(
         va2pa((cr->reg).rsp, cr),
-        cr
-        );
+        cr);
     (cr->reg).rsp = (cr->reg).rsp + 8;
     // jump to return address
     cr->rip = ret_addr;
@@ -385,7 +401,7 @@ void instruction_cycle(core_t *cr)
     // DECODE: decode the run-time instruction operands
     inst_t inst;
     parse_instruction(inst_str, &inst, cr);
-    
+
     // EXECUTE: get the function pointer or handler by the operator
     handler_t handler = handler_table[inst.op];
     // update CPU and memory according the instruction
@@ -400,14 +416,14 @@ void print_register(core_t *cr)
     }
 
     reg_t reg = cr->reg;
-    
+
     printf("rax = %16lx\trbx = %16lx\trcx = %16lx\trdx = %16lx\n",
-        reg.rax, reg.rbx, reg.rcx, reg.rdx);
+           reg.rax, reg.rbx, reg.rcx, reg.rdx);
     printf("rsi = %16lx\trdi = %16lx\trbp = %16lx\trsp = %16lx\n",
-        reg.rsi, reg.rdi, reg.rbp, reg.rsp);
+           reg.rsi, reg.rdi, reg.rbp, reg.rsp);
     printf("rip = %16lx\n", cr->rip);
     printf("CF = %u\tZF = %u\tSF = %u\tOF = %u\n",
-        cr->CF, cr->ZF, cr->SF, cr->OF);
+           cr->CF, cr->ZF, cr->SF, cr->OF);
 }
 
 void print_stack(core_t *cr)
@@ -417,12 +433,12 @@ void print_stack(core_t *cr)
         return;
     }
 
-    int n = 10;    
-    uint64_t *high = (uint64_t*)&pm[va2pa((cr->reg).rsp, cr)];
+    int n = 10;
+    uint64_t *high = (uint64_t *)&pm[va2pa((cr->reg).rsp, cr)];
     high = &high[n];
     uint64_t va = (cr->reg).rsp + n * 8;
-    
-    for (int i = 0; i < 2 * n; ++ i)
+
+    for (int i = 0; i < 2 * n; ++i)
     {
         uint64_t *ptr = (uint64_t *)(high - i);
         printf("0x%16lx : %16lx", va, (uint64_t)*ptr);
