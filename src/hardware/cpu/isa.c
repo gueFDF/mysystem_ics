@@ -5,7 +5,6 @@
 #include <headers/memory.h>
 #include <headers/common.h>
 
-
 /*======================================*/
 /*      instruction set architecture    */
 /*======================================*/
@@ -135,11 +134,129 @@ static uint64_t decode_operand(od_t *od)
     return 0;
 }
 
-static void parse_instruction(const char *str, inst_t *inst, core_t *cr)
+static void parse_instruction(const char *str, inst_t *inst, core_t *cr) //使用此函数解析一条汇编指令
 {
+
+    char op_str[64] = {'\0'}; //寄存器串
+    int op_len = 0;
+    char src_str[64] = {'\0'}; // src
+    int src_len = 0;
+    char dst_str[64] = {'\0'}; // dst
+    int dst_len = 0;
+
+    char c;
+    int count_parentheses = 0; //括号个数
+    int state = 0;             //状态
+
+    for (int i = 0; i < strlen(str); i++)
+    {
+        c = str[i];
+        if (c == '(' || c == ')')
+        {
+            count_parentheses++;
+        }
+
+        if (state == 0 && c != ' ')
+        {
+            state = 1;
+        }
+        else if (state == 1 && c == ' ')
+        {
+            state = 2;
+            continue;
+        }
+        else if (state == 2 && c != ' ')
+        {
+            state = 3;
+        }
+        else if (state == 3 && (c == ' ' || c == ',') && (count_parentheses == 0 || count_parentheses == 2))
+        {
+            state = 4;
+            continue;
+        }
+        else if (state == 4 && c != ' ' && c != ',')
+        {
+            state = 5;
+        }
+        else if (state == 5 && c == ' ')
+        {
+            state = 6;
+            continue;
+        }
+
+        if (state == 1)
+        {
+            op_str[op_len++] = c;
+            continue;
+        }
+        else if (state == 3)
+        {
+            src_str[src_len++] = c;
+            continue;
+        }
+        else if (state == 5)
+        {
+            dst_str[dst_len++] = c;
+            continue;
+        }
+    }
+    //到这字符串解析完成
+
+    //解析两个操作数
+    parse_operand(src_str, &(inst->src), cr);
+    parse_operand(dst_str, &(inst->dst), cr);
+
+    //分析操作(strcmp)
+    if (strcmp(op_str, "mov") == 0 || strcmp(op_str, "movq") == 0)
+    {
+        inst->op = INST_MOV;
+    }
+    else if (strcmp(op_str, "push") == 0)
+    {
+        inst->op = INST_PUSH;
+    }
+    else if (strcmp(op_str, "pop") == 0)
+    {
+        inst->op = INST_POP;
+    }
+    else if (strcmp(op_str, "leaveq") == 0)
+    {
+        inst->op = INST_LEAVE;
+    }
+    else if (strcmp(op_str, "callq") == 0)
+    {
+        inst->op = INST_CALL;
+    }
+    else if (strcmp(op_str, "retq") == 0)
+    {
+        inst->op = INST_RET;
+    }
+    else if (strcmp(op_str, "add") == 0)
+    {
+        inst->op = INST_ADD;
+    }
+    else if (strcmp(op_str, "sub") == 0)
+    {
+        inst->op = INST_SUB;
+    }
+    else if (strcmp(op_str, "cmpq") == 0)
+    {
+        inst->op = INST_CMP;
+    }
+    else if (strcmp(op_str, "jne") == 0)
+    {
+        inst->op = INST_JNE;
+    }
+    else if (strcmp(op_str, "jmp") == 0)
+    {
+        inst->op = INST_JMP;
+    }
+    
+    //为了方便看结果，以及debug
+    debug_printf(DEBUG_PARSEINST, "[%s (%d)] [%s (%d)] [%s (%d)]\n", op_str, inst->op, src_str, inst->src.type, dst_str, inst->dst.type);
 }
 
-static void parse_operand(const char *str, od_t *od, core_t *cr) //此函数用来解析汇编指令
+static void parse_operand(const char *str, od_t *od, core_t *cr) //此函数用来解析一个操作数
 {
     // str即为我们要解析的一条汇编指令
     //解析前先将内容初始化
@@ -735,7 +852,7 @@ static uint64_t reflect_register(const char *str, core_t *cr)
         (uint64_t) & (reg->r15w),
         (uint64_t) & (reg->r15b),
     };
-    for (int i = 0; i < 72; ++i)  //该方法比较笨，时间复杂度较高,后续可以考虑拿前缀树进行优化
+    for (int i = 0; i < 72; ++i) //该方法比较笨，时间复杂度较高,后续可以考虑拿前缀树进行优化
     {
         //解析：这有两个数组reflect_register[]和reg_name_list[72]一个是存放的寄存器名称的字符串的数组，一个是存放的寄存器指针的数组，这两个数组是一一对应的，
         //解析时，先通过strcmp与字符串数组里的寄存器名称一一比较，==0后获得数组下标

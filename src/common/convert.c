@@ -123,10 +123,16 @@ uint64_t string2uint_range(const char *str, int start, int end) //指定范围�
         }
         else if (stat == 4)
         {
-            if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))
+            if ((c >= '0' && c <= '9'))
             {
                 stat = 5;
-                uv = uv * 16 + c - 'a';
+                uv = uv * 16 + c - '0';
+                continue;
+            }
+            else if (c >= 'a' && c <= 'f')
+            {
+                stat = 5;
+                uv = uv * 16 + c - 'a' + 10;
                 continue;
             }
             else if (c == ' ') //解析完成 进入结束状态
@@ -141,13 +147,28 @@ uint64_t string2uint_range(const char *str, int start, int end) //指定范围�
         }
         else if (stat == 5)
         {
-            if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))
+            if ((c >= '0' && c <= '9'))
             {
                 stat = 5;
                 uint64_t pv = uv;
-                uv = uv * 16 + c - 'a';
+                uv = uv * 16 + c - '0';
                 if (pv > uv)
                 {
+                    printf("%c\n", c);
+                    printf("pv:%lu uv:%lu\n", pv, uv);
+                    printf("mybe overflow\n");
+                    goto fail;
+                }
+                continue;
+            }
+            else if (c >= 'a' && c <= 'f')
+            {
+                stat = 5;
+                uint64_t pv = uv;
+                uv = uv * 16 + c - 'a' + 10;
+                if (pv > uv)
+                {
+                    printf("pv:%lu uv:%lu\n", pv, uv);
                     printf("mybe overflow\n");
                     goto fail;
                 }
@@ -182,7 +203,14 @@ uint64_t string2uint_range(const char *str, int start, int end) //指定范围�
     }
     else //负数
     {
-        return (-1) * uv;
+        if ((uv & 8000000000000000) != 0) //说明最高位被占用，溢出
+        {
+            printf("最高位被占用\n");
+            goto fail;
+        }
+
+        int64_t sv = -1 * (int64_t)uv;
+        return *((uint64_t *)&sv);
     }
 
 fail:
