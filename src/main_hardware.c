@@ -17,10 +17,10 @@ void print_stack(core_t *cr);
 
 int main()
 {
-    // TestAddFunctionCallAndComputation();
-    TestParsingOperand();
-    Teststring2uint_range();
-    TestString2Uint();
+    TestAddFunctionCallAndComputation();
+    // TestParsingOperand();
+    // Teststring2uint_range();
+    // TestString2Uint();
     return 0;
 }
 
