@@ -5,11 +5,13 @@
 #include <headers/memory.h>
 #include <headers/common.h>
 
+
 /*======================================*/
 /*      instruction set architecture    */
 /*======================================*/
 
 // data structures
+
 typedef enum INST_OPERATOR
 {
     INST_MOV,   // 0
@@ -64,6 +66,8 @@ typedef struct INST_STRUCT
 // functions to map the string assembly code to inst_t instance
 static void parse_instruction(const char *str, inst_t *inst, core_t *cr);
 static void parse_operand(const char *str, od_t *od, core_t *cr);
+
+static uint64_t reflect_register(const char *str, core_t *cr);
 static uint64_t decode_operand(od_t *od);
 
 // interpret the operand
@@ -135,37 +139,169 @@ static void parse_instruction(const char *str, inst_t *inst, core_t *cr)
 {
 }
 
-static void parse_operand(const char *str, od_t *od, core_t *cr)  //此函数用来解析汇编指令
+static void parse_operand(const char *str, od_t *od, core_t *cr) //此函数用来解析汇编指令
 {
-    //str即为我们要解析的一条汇编指令
+    // str即为我们要解析的一条汇编指令
     //解析前先将内容初始化
-    od->type=0;
-    od->reg1=0;
-    od->reg2=0;
-    od->scal=0;
-    od->imm=0;
-    if(strlen(str)==0)  //如过传进来的是一个空串
+    od->type = 0;
+    od->reg1 = 0;
+    od->reg2 = 0;
+    od->scal = 0;
+    od->imm = 0;
+    if (strlen(str) == 0) //如过传进来的是一个空串
     {
-        return;  //直接返回
+        return; //直接返回
     }
-    if(str[0]=='$')  //是一个立即数
+    if (str[0] == '$') //是一个立即数
     {
-        od->type=IMM;
-        od->imm=string2uint_range(str,1,-1);   //此函数是将指定范围的字符串解析为立即数（手动实现）
+        od->type = IMM;
+        od->imm = string2uint_range(str, 1, -1); //此函数是将指定范围的字符串解析为立即数（手动实现）
+        return;
     }
-    else if(str[0]=='%') //是一个寄存器
+    else if (str[0] == '%') //是一个寄存器
     {
+        od->type = REG;
+        od->reg1 = reflect_register(str, cr);
+        return;
+    }
+    else //类似与M[Imm+R[r.]+R[r,]·s] 这样的操作数   //访存
+    {
+        char imm[64] = {'\0'}; //立即数
+        int imm_len = 0;
+        char reg1[64] = {'\0'}; // reg1
+        int reg1_len = 0;
+        char reg2[64] = {'\0'}; // reg2
+        int reg2_len = 0;
+        char scal[64] = {'\0'}; // scal
+        int scal_len = 0;
 
-    }
-    else
-    {
+        int ca = 0; //匹配到括号的个数  '()'
 
+        int cb = 0; //匹配到逗号的个数 ','
+
+        for (int i = 0; i < strlen(str); i++) //循环解析
+        {
+            char c = str[i];
+            if (c == '(' || c == ')')
+            {
+                ca++;
+                continue;
+            }
+            else if (c == ',')
+            {
+                cb++;
+                continue;
+            }
+            else
+            {
+                if (ca == 0) // M(reg1,reg2,scal)
+                {
+                    imm[imm_len++] = c;
+                    continue;
+                }
+                else if (ca == 1)
+                {
+                    if (cb == 0) // reg1,reg2,scal)
+                    {
+                        reg1[reg1_len++] = c;
+                        continue;
+                    }
+                    else if (cb == 1) // ,reg2,scal)
+                    {
+                        reg2[reg2_len++] = c;
+                        continue;
+                    }
+                    else if (cb == 2) //  ,scal)
+                    {
+                        scal[scal_len++] = c;
+                        continue;
+                    }
+                }
+            }
+        }
+
+        //解析成功，后需要分析解析后的结果，完成  ins_t结构体的填充
+
+        if (imm_len > 0) //有立即数
+        {
+            od->imm = string2uint(imm);
+            if (ca == 0) //一个地址
+            {
+                od->type = MEM_IMM;
+                return;
+            }
+        }
+        if (scal_len > 0) //有scal
+        {
+            od->scal = string2uint(scal);
+            if (od->scal != 1 && od->scal != 2 && od->scal != 4 && od->scal != 8) // 比例因子 s 必 须 是 1 、 2 、 4 或者 8
+            {
+                printf("%s must be 1,2,4,8\n", scal);
+                exit(1);
+            }
+        }
+        if (reg1_len > 0) //有寄存器 reg1
+        {
+            od->reg1 = reflect_register(reg1, cr);
+        }
+        if (reg2_len > 0) //有寄存器 reg2
+        {
+            od->reg2 = reflect_register(reg2, cr);
+        }
+
+        if (cb == 0) // imm(reg1)
+        {
+            if (reg1_len > 0) // imm(reg1)
+            {
+                od->type = MEM_IMM_REG1;
+            }
+            else // imm
+            {
+                od->type = IMM;
+            }
+            return;
+        }
+        else if (cb == 1)
+        {
+            if (imm_len > 0) // imm(reg1,reg2)
+            {
+                od->type = MEM_IMM_REG1_REG2;
+            }
+            else //(reg1,reg2)
+            {
+                od->type = MEM_REG1_REG2;
+            }
+            return;
+        }
+        else if (cb == 2)
+        {
+            if (imm_len > 0)
+            {
+                if (reg1_len > 0) // imm(reg1,reg2,scal)
+                {
+                    od->type = MEM_IMM_REG1_REG2_SCAL;
+                }
+                else //(reg1,reg2,scal)
+                {
+                    od->type = MEM_IMM_REG2_SCAL;
+                }
+                return;
+            }
+            else
+            {
+                if (reg1_len > 0) //(reg1,reg2,scal)
+                {
+                    od->type = MEM_REG1_REG2_SCAL;
+                }
+                else // (,reg2,scal)
+                {
+                    od->type = MEM_REG2_SCAL;
+                }
+                return;
+            }
+        }
     }
 }
-
-/*======================================*/
-/*      instruction handlers            */
-/*======================================*/
 
 // insturction (sub)set
 // In this simulator, the instructions have been decoded and fetched
@@ -207,19 +343,13 @@ static handler_t handler_table[NUM_INSTRTYPE] = {
 // inline to reduce cost
 static inline void reset_cflags(core_t *cr)
 {
-    cr->CF = 0;
-    cr->ZF = 0;
-    cr->SF = 0;
-    cr->OF = 0;
+    cr->flag._cpu_flag_value = 0;
 }
 
 // update the rip pointer to the next instruction sequentially
 static inline void next_rip(core_t *cr)
 {
-    // we are handling the fixed-length of assembly string here
-    // but their size can be variable as true X86 instructions
-    // that's because the operands' sizes follow the specific encoding rule
-    // the risc-v is a fixed length ISA
+
     cr->rip = cr->rip + sizeof(char) * MAX_INSTRUCTION_CHAR;
 }
 
@@ -423,7 +553,7 @@ void print_register(core_t *cr)
            reg.rsi, reg.rdi, reg.rbp, reg.rsp);
     printf("rip = %16lx\n", cr->rip);
     printf("CF = %u\tZF = %u\tSF = %u\tOF = %u\n",
-           cr->CF, cr->ZF, cr->SF, cr->OF);
+           cr->flag.CF, cr->flag.ZF, cr->flag.SF, cr->flag.OF);
 }
 
 void print_stack(core_t *cr)
@@ -449,5 +579,211 @@ void print_stack(core_t *cr)
         }
         printf("\n");
         va -= 8;
+    }
+}
+
+// lookup table
+static const char *reg_name_list[72] = {
+    "%rax",
+    "%eax",
+    "%ax",
+    "%ah",
+    "%al",
+    "%rbx",
+    "%ebx",
+    "%bx",
+    "%bh",
+    "%bl",
+    "%rcx",
+    "%ecx",
+    "%cx",
+    "%ch",
+    "%cl",
+    "%rdx",
+    "%edx",
+    "%dx",
+    "%dh",
+    "%dl",
+    "%rsi",
+    "%esi",
+    "%si",
+    "%sih",
+    "%sil",
+    "%rdi",
+    "%edi",
+    "%di",
+    "%dih",
+    "%dil",
+    "%rbp",
+    "%ebp",
+    "%bp",
+    "%bph",
+    "%bpl",
+    "%rsp",
+    "%esp",
+    "%sp",
+    "%sph",
+    "%spl",
+    "%r8",
+    "%r8d",
+    "%r8w",
+    "%r8b",
+    "%r9",
+    "%r9d",
+    "%r9w",
+    "%r9b",
+    "%r10",
+    "%r10d",
+    "%r10w",
+    "%r10b",
+    "%r11",
+    "%r11d",
+    "%r11w",
+    "%r11b",
+    "%r12",
+    "%r12d",
+    "%r12w",
+    "%r12b",
+    "%r13",
+    "%r13d",
+    "%r13w",
+    "%r13b",
+    "%r14",
+    "%r14d",
+    "%r14w",
+    "%r14b",
+    "%r15",
+    "%r15d",
+    "%r15w",
+    "%r15b",
+};
+static uint64_t reflect_register(const char *str, core_t *cr)
+{
+    // lookup table
+    reg_t *reg = &(cr->reg);
+    uint64_t reg_addr[72] = {
+        (uint64_t) & (reg->rax),
+        (uint64_t) & (reg->eax),
+        (uint64_t) & (reg->ax),
+        (uint64_t) & (reg->ah),
+        (uint64_t) & (reg->al),
+        (uint64_t) & (reg->rbx),
+        (uint64_t) & (reg->ebx),
+        (uint64_t) & (reg->bx),
+        (uint64_t) & (reg->bh),
+        (uint64_t) & (reg->bl),
+        (uint64_t) & (reg->rcx),
+        (uint64_t) & (reg->ecx),
+        (uint64_t) & (reg->cx),
+        (uint64_t) & (reg->ch),
+        (uint64_t) & (reg->cl),
+        (uint64_t) & (reg->rdx),
+        (uint64_t) & (reg->edx),
+        (uint64_t) & (reg->dx),
+        (uint64_t) & (reg->dh),
+        (uint64_t) & (reg->dl),
+        (uint64_t) & (reg->rsi),
+        (uint64_t) & (reg->esi),
+        (uint64_t) & (reg->si),
+        (uint64_t) & (reg->sih),
+        (uint64_t) & (reg->sil),
+        (uint64_t) & (reg->rdi),
+        (uint64_t) & (reg->edi),
+        (uint64_t) & (reg->di),
+        (uint64_t) & (reg->dih),
+        (uint64_t) & (reg->dil),
+        (uint64_t) & (reg->rbp),
+        (uint64_t) & (reg->ebp),
+        (uint64_t) & (reg->bp),
+        (uint64_t) & (reg->bph),
+        (uint64_t) & (reg->bpl),
+        (uint64_t) & (reg->rsp),
+        (uint64_t) & (reg->esp),
+        (uint64_t) & (reg->sp),
+        (uint64_t) & (reg->sph),
+        (uint64_t) & (reg->spl),
+        (uint64_t) & (reg->r8),
+        (uint64_t) & (reg->r8d),
+        (uint64_t) & (reg->r8w),
+        (uint64_t) & (reg->r8b),
+        (uint64_t) & (reg->r9),
+        (uint64_t) & (reg->r9d),
+        (uint64_t) & (reg->r9w),
+        (uint64_t) & (reg->r9b),
+        (uint64_t) & (reg->r10),
+        (uint64_t) & (reg->r10d),
+        (uint64_t) & (reg->r10w),
+        (uint64_t) & (reg->r10b),
+        (uint64_t) & (reg->r11),
+        (uint64_t) & (reg->r11d),
+        (uint64_t) & (reg->r11w),
+        (uint64_t) & (reg->r11b),
+        (uint64_t) & (reg->r12),
+        (uint64_t) & (reg->r12d),
+        (uint64_t) & (reg->r12w),
+        (uint64_t) & (reg->r12b),
+        (uint64_t) & (reg->r13),
+        (uint64_t) & (reg->r13d),
+        (uint64_t) & (reg->r13w),
+        (uint64_t) & (reg->r13b),
+        (uint64_t) & (reg->r14),
+        (uint64_t) & (reg->r14d),
+        (uint64_t) & (reg->r14w),
+        (uint64_t) & (reg->r14b),
+        (uint64_t) & (reg->r15),
+        (uint64_t) & (reg->r15d),
+        (uint64_t) & (reg->r15w),
+        (uint64_t) & (reg->r15b),
+    };
+    for (int i = 0; i < 72; ++i)  //该方法比较笨，时间复杂度较高,后续可以考虑拿前缀树进行优化
+    {
+        //解析：这有两个数组reflect_register[]和reg_name_list[72]一个是存放的寄存器名称的字符串的数组，一个是存放的寄存器指针的数组，这两个数组是一一对应的，
+        //解析时，先通过strcmp与字符串数组里的寄存器名称一一比较，==0后获得数组下标
+        //因为这两个数组是一一对应的，所以可以通过下标找到对应的寄存器指针
+        if (strcmp(str, reg_name_list[i]) == 0)
+        {
+            // now we know that i is the index inside reg_name_list
+            return reg_addr[i];
+        }
+    }
+    printf("parse register %s error\n", str);
+    exit(0);
+}
+
+// test
+void TestParsingOperand()
+{
+    ACTIVE_CORE = 0x0;
+    core_t *ac = (core_t *)&cores[ACTIVE_CORE];
+
+    const char *strs[11] = {
+        "$0x1234",
+        "%rax",
+        "0xabcd",
+        "(%rsp)",
+        "0xabcd(%rsp)",
+        "(%rsp,%rbx)",
+        "0xabcd(%rsp,%rbx)",
+        "(,%rbx,8)",
+        "0xabcd(,%rbx,8)",
+        "(%rsp,%rbx,8)",
+        "0xabcd(%rsp,%rbx,8)",
+    };
+
+    printf("rax %p\n", &(ac->reg.rax));
+    printf("rsp %p\n", &(ac->reg.rsp));
+    printf("rbx %p\n", &(ac->reg.rbx));
+
+    for (int i = 0; i < 11; ++i)
+    {
+        od_t od;
+        parse_operand(strs[i], &od, ac);
+
+        printf("\n%s\n", strs[i]);
+        printf("od enum type: %d\n", od.type);
+        printf("od imm: %lx\n", od.imm);
+        printf("od reg1: %lx\n", od.reg1);
+        printf("od reg2: %lx\n", od.reg2);
+        printf("od scal: %lx\n", od.scal);
     }
 }
